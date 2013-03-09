@@ -10,12 +10,24 @@
 
 #import <CommonCrypto/CommonDigest.h>
 
+#define kKYUnlockCodeManagerDefaultCode_       @"unlockCode"
 #define kKYUnlockCodeManagerDefaultCodeOrder_  @"12345"
 #define kKYUnlockCodeManagerDefaultCodeFormat_ @"%@%@%@%@%@"
 
-@interface KYUnlockCodeManager () {
- @private
-}
+
+@interface KYUnlockCodeManager ()
+
+// Lock status in keychain
+// Return the lock statue with code
+- (NSString *)_lockStatusForFeature:(NSString *)feature;
+// Return the key of keychain for lock status
+- (NSString *)_keyOfLockStatusForFeature:(NSString *)feature;
+// Return reset lock status with code
+// It'll be occured only in two cases:
+//   - Lock status is empty
+//   - User enter the right code to unlock the feature
+- (NSString *)_resetLockStatusForFeature:(NSString *)feature
+                                withCode:(NSString *)code;
 
 // To MD5
 - (NSString *)_toMD5FromString:(NSString *)string;
@@ -81,6 +93,98 @@
 }
 
 #pragma mark - Private Methods
+
+// Lock status in keychain
+// Return the lock statue with code
+- (NSString *)_lockStatusForFeature:(NSString *)feature {
+  NSString * key  = [self _keyOfLockStatusForFeature:feature];
+  NSString * code = nil;
+  
+  // UID must be persistent even if the application is removed from devices
+  // Use keychain as a storage
+  NSDictionary * query = [NSDictionary dictionaryWithObjectsAndKeys:
+                          (id)kSecClassGenericPassword,            (id)kSecClass,
+                          key,                                     (id)kSecAttrGeneric,
+                          key,                                     (id)kSecAttrAccount,
+                          [[NSBundle mainBundle] bundleIdentifier],(id)kSecAttrService,
+                          (id)kSecMatchLimitOne,                   (id)kSecMatchLimit,
+                          (id)kCFBooleanTrue,                      (id)kSecReturnAttributes,
+                          nil];
+  CFTypeRef attributesRef = NULL;
+  OSStatus result = SecItemCopyMatching((CFDictionaryRef)query, &attributesRef);
+  if (result == noErr) {
+    NSDictionary * attributes = (NSDictionary *)attributesRef;
+    NSMutableDictionary * valueQuery = [NSMutableDictionary dictionaryWithDictionary:attributes];
+    
+    [valueQuery setObject:(id)kSecClassGenericPassword forKey:(id)kSecClass];
+    [valueQuery setObject:(id)kCFBooleanTrue           forKey:(id)kSecReturnData];
+    
+    CFTypeRef passwordDataRef = NULL;
+    OSStatus result = SecItemCopyMatching((CFDictionaryRef)valueQuery, &passwordDataRef);
+    if (result == noErr) {
+      NSData * passwordData = (NSData *)passwordDataRef;
+      // Assume the stored data is a UTF-8 string.
+      code = [[NSString alloc] initWithBytes:[passwordData bytes]
+                                      length:[passwordData length]
+                                    encoding:NSUTF8StringEncoding];
+    }
+  }
+  
+  // Generate a new UID for device if it does not exist
+  if (code == nil)
+    code = [self _resetLockStatusForFeature:feature
+                                   withCode:kKYUnlockCodeManagerDefaultCode_];
+  return code;
+}
+
+// Return the key of keychain for lock status
+- (NSString *)_keyOfLockStatusForFeature:(NSString *)feature {
+  NSString * keyBasic = @"Master:LockStatus";
+  if (feature == nil) return keyBasic;
+  return [NSString stringWithFormat:@"%@:Feature:%@", keyBasic, feature];
+}
+
+// Return reset lock status with code
+// It'll be occured only in two cases:
+//   - Lock status is empty
+//   - User enter the right code to unlock the feature
+- (NSString *)_resetLockStatusForFeature:(NSString *)feature
+                                withCode:(NSString *)code {
+  NSLog(@"- RESET Lock Status with CODE: %@", code);
+  // Key for lock status
+  NSString * key  = [self _keyOfLockStatusForFeature:feature];
+  // UID must be persistent even if the application is removed from devices
+  // Use keychain as a storage
+  NSMutableDictionary * query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                 (id)kSecClassGenericPassword,             (id)kSecClass,
+                                 key,                                      (id)kSecAttrGeneric,
+                                 key,                                      (id)kSecAttrAccount,
+                                 [[NSBundle mainBundle] bundleIdentifier], (id)kSecAttrService,
+                                 @"",                                      (id)kSecAttrLabel,
+                                 @"",                                      (id)kSecAttrDescription,
+                                 nil];
+  // Set |kSecAttrAccessibleAfterFirstUnlock|
+  //   so that background applications are able to access this key.
+  // Keys defined as |kSecAttrAccessibleAfterFirstUnlock|
+  //   will be migrated to the new devices/installations via encrypted backups.
+  // If you want different UID per device,
+  //   use |kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly| instead.
+  // Keep in mind that keys defined
+  //   as |kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly|
+  //   will be removed after restoring from a backup.
+  [query setObject:(id)kSecAttrAccessibleAfterFirstUnlock
+            forKey:(id)kSecAttrAccessible];
+  // Set UID
+  [query setObject:[code dataUsingEncoding:NSUTF8StringEncoding]
+            forKey:(id)kSecValueData];
+  
+  OSStatus result = SecItemAdd((CFDictionaryRef)query, NULL);
+  if (result != noErr) {
+    NSLog(@"!!!ERROR: Couldn't add the Keychain Item. result = %ld, query = %@", result, query);
+    return nil;
+  }
+  return code;
+}
 
 // Default for delegate: |-codeFormat|
 - (NSString *)_codeFormat {
@@ -176,13 +280,29 @@
 
 #pragma mark - Public Methods
 
+// Check whether the feature is locked or not, return a boolean value.
+//
+// |feature| is feature's identifier to distinguish different features,
+//   use |nil| if only one feature needs to be managed.
+//
+- (BOOL)isLockedOnFeature:(NSString *)feature {
+  return [self unlockFeature:feature
+                    withCode:[self _lockStatusForFeature:feature]];
+}
+
 // Unlock with the code
 //
 // If code is valid, return YES,
 // otherwise, return NO
 //
-- (BOOL)unlockWithCode:(NSString *)code {
-  return (code == [self _unlockCode]);
+- (BOOL)unlockFeature:(NSString *)feature
+             withCode:(NSString *)code {
+  BOOL isLocked = YES;
+  if (code == [self _unlockCode]) {
+    isLocked = NO;
+    [self _resetLockStatusForFeature:feature withCode:code];
+  }
+  return isLocked;
 }
 
 @end

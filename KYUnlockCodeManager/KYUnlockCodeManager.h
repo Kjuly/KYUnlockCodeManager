@@ -28,12 +28,20 @@ typedef enum {
 @property (nonatomic, assign) id <KYUnlockCodeManagerDataSource> dataSource;
 @property (nonatomic, assign) id <KYUnlockCodeManagerDelegate>   delegate;
 
-// Unlock with the code
+// Check whether the feature is locked or not, return a boolean value.
+//
+// |feature| is feature's identifier to distinguish different features,
+//   use |nil| if only one feature needs to be managed or all features are
+//   managed together as a package
+//
+- (BOOL)isLockedOnFeature:(NSString *)feature;
+// Unlock the feature with the code
 //
 // If code is valid, return YES,
 // otherwise, return NO
 //
-- (BOOL)unlockWithCode:(NSString *)code;
+- (BOOL)unlockFeature:(NSString *)feature
+             withCode:(NSString *)code;
 
 @end
 
