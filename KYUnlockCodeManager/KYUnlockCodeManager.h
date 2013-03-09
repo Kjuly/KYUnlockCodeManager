@@ -9,6 +9,9 @@
 #import <Foundation/Foundation.h>
 
 
+#define kKYUnlockCodeManagerNShowCodeInputView @"KYUnlockCodeManagerNShowCodeInputView"
+#define kKYUnlockCodeManagerNUnlocked          @"KYUnlockCodeManagerNUnlocked"
+
 typedef enum {
   kKYUnlockCodeManagerFactorTypeNone = 0,
   kKYUnlockCodeManagerFactorTypeOfDeviceUID,
@@ -23,7 +26,7 @@ typedef enum {
 @protocol KYUnlockCodeManagerDelegate;
 
 
-@interface KYUnlockCodeManager : NSObject
+@interface KYUnlockCodeManager : NSObject <UIAlertViewDelegate>
 
 @property (nonatomic, assign) id <KYUnlockCodeManagerDataSource> dataSource;
 @property (nonatomic, assign) id <KYUnlockCodeManagerDelegate>   delegate;

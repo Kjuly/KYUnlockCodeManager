@@ -45,6 +45,9 @@
 // Return the unlock code
 - (NSString *)_unlockCode;
 
+// Code input view
+- (void)_showCodeInputView:(NSNotification *)note;
+
 @end
 
 
@@ -55,7 +58,20 @@
 - (void)dealloc {
   self.dataSource = nil;
   self.delegate   = nil;
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
   [super dealloc];
+}
+
+- (id)init {
+  if (self = [super init]) {
+    NSNotificationCenter * notificationCenter = [NSNotificationCenter defaultCenter];
+    // Notifi to show code input view
+    [notificationCenter addObserver:self
+                           selector:@selector(_showCodeInputView:)
+                               name:kKYUnlockCodeManagerNShowCodeInputView
+                             object:nil];
+  }
+  return self;
 }
 
 #pragma mark - Default Methods for Delegate
@@ -278,6 +294,20 @@
           : [self _resizedCodeFromCode:code]);
 }
 
+// Code input view
+// Show code input view
+- (void)_showCodeInputView:(NSNotification *)note {
+  UIAlertView * codeInputView = [UIAlertView alloc];
+  [codeInputView initWithTitle:NSLocalizedString(@"KYUnlockCodeManager:CodeInputViewTitle", nil)
+                       message:nil
+                      delegate:self
+             cancelButtonTitle:NSLocalizedString(@"KYUnlockCodeManager:Cancel", nil)
+             otherButtonTitles:NSLocalizedString(@"KYUnlockCodeManager:Confirm", nil), nil];
+  [codeInputView setAlertViewStyle:UIAlertViewStylePlainTextInput];
+  [codeInputView show];
+  [codeInputView release];
+}
+
 #pragma mark - Public Methods
 
 // Check whether the feature is locked or not, return a boolean value.
@@ -303,6 +333,21 @@
     [self _resetLockStatusForFeature:feature withCode:code];
   }
   return isLocked;
+}
+
+#pragma mark - UIAlertView Delegate
+
+- (void)   alertView:(UIAlertView *)alertView
+clickedButtonAtIndex:(NSInteger)buttonIndex {
+  if (buttonIndex != 1) return;
+  
+  // Check the code
+  NSString * code = [alertView textFieldAtIndex:0].text;
+  if ([self unlockFeature:nil withCode:code])
+    return;
+  // Code is valid, post notifi to observer to unlock the feature
+  [[NSNotificationCenter defaultCenter] postNotificationName:kKYUnlockCodeManagerNUnlocked
+                                                      object:nil];
 }
 
 @end
