@@ -57,6 +57,8 @@ typedef enum {
 //
 - (BOOL)unlockFeature:(NSString *)feature
              withCode:(NSString *)code;
+// Reset code to default for feature
+- (void)resetCodeForFeature:(NSString *)feature;
 
 @end
 

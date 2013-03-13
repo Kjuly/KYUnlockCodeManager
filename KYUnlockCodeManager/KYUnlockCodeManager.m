@@ -340,6 +340,12 @@
   return isLocked;
 }
 
+// Reset code to default for feature
+- (void)resetCodeForFeature:(NSString *)feature {
+  [self _resetLockStatusForFeature:feature
+                          withCode:kKYUnlockCodeManagerDefaultCode_];
+}
+
 #pragma mark - UIAlertView Delegate
 
 - (void)   alertView:(UIAlertView *)alertView
