@@ -330,9 +330,9 @@
   BOOL isLocked = YES;
   if (
 #ifdef kKYUnlockCodeManagerUniqueCodeDefined
-      code == kKYUnlockCodeManagerUniqueCode ||
+      [code isEqualToString:kKYUnlockCodeManagerUniqueCode] ||
 #endif
-      code == [self _unlockCode])
+      [code isEqualToString:[self _unlockCode]])
   {
     isLocked = NO;
     [self _resetLockStatusForFeature:feature withCode:code];
