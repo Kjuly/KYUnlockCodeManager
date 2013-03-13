@@ -328,7 +328,12 @@
 - (BOOL)unlockFeature:(NSString *)feature
              withCode:(NSString *)code {
   BOOL isLocked = YES;
-  if (code == [self _unlockCode]) {
+  if (
+#ifdef kKYUnlockCodeManagerUniqueCodeDefined
+      code == kKYUnlockCodeManagerUniqueCode ||
+#endif
+      code == [self _unlockCode])
+  {
     isLocked = NO;
     [self _resetLockStatusForFeature:feature withCode:code];
   }

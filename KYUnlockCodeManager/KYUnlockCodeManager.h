@@ -8,7 +8,19 @@
 
 #import <Foundation/Foundation.h>
 
+// Define |kKYUnlockCodeManagerUniqueCodeDefined|
+//   to use a unique code as a general code to unlock the feature in any device,
+//   and it's mainly for Apple's Review Process.
+//
+// .h: extern NSString * const kKYUnlockCodeManagerUniqueCode;
+// .m: NSString * const kKYUnlockCodeManagerUniqueCode = @"abcdef";
+//
+// If it is not defined, do not use unique code.
+#ifndef kKYUnlockCodeManagerUniqueCodeDefined
+#define kKYUnlockCodeManagerUniqueCodeDefined 0
+#endif
 
+// Notification Name
 #define kKYUnlockCodeManagerNShowCodeInputView @"KYUnlockCodeManagerNShowCodeInputView"
 #define kKYUnlockCodeManagerNUnlocked          @"KYUnlockCodeManagerNUnlocked"
 
