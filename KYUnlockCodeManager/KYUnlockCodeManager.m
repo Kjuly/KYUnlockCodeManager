@@ -169,7 +169,7 @@
   NSLog(@"- RESET Lock Status with CODE: %@", code);
   // Key for lock status
   NSString * key  = [self _keyOfLockStatusForFeature:feature];
-  // UID must be persistent even if the application is removed from devices
+  // It must be persistent even if the application is removed from devices
   // Use keychain as a storage
   NSMutableDictionary * query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                  (id)kSecClassGenericPassword,             (id)kSecClass,
@@ -194,7 +194,17 @@
   [query setObject:[code dataUsingEncoding:NSUTF8StringEncoding]
             forKey:(id)kSecValueData];
   
-  OSStatus result = SecItemAdd((CFDictionaryRef)query, NULL);
+  // Delete old one first
+  OSStatus result = SecItemDelete((CFDictionaryRef)query);
+  if (result == noErr)
+    NSLog(@"[INFO}  Unlock Code is successfully reset.");
+  else if (result == errSecItemNotFound)
+    NSLog(@"[INFO}  Unlock Code is successfully reset.");
+  else
+    NSLog(@"[ERROR] Coudn't delete the Keychain Item. result = %ld query = %@", result, query);
+  
+  // Add new
+  result = SecItemAdd((CFDictionaryRef)query, NULL);
   if (result != noErr) {
     NSLog(@"!!!ERROR: Couldn't add the Keychain Item. result = %ld, query = %@", result, query);
     return nil;
@@ -327,6 +337,7 @@
 //
 - (BOOL)unlockFeature:(NSString *)feature
              withCode:(NSString *)code {
+  NSLog(@"%@", code);
   BOOL isLocked = YES;
   if (
 #ifdef kKYUnlockCodeManagerUniqueCodeDefined
