@@ -332,8 +332,14 @@
 //   use |nil| if only one feature needs to be managed.
 //
 - (BOOL)isLockedOnFeature:(NSString *)feature {
-  return [self unlockFeature:feature
-                    withCode:[self _lockStatusForFeature:feature]];
+  NSString * code = [self _lockStatusForFeature:feature];
+  if (
+#ifdef kKYUnlockCodeManagerUniqueCodeDefined
+      [code isEqualToString:kKYUnlockCodeManagerUniqueCode] ||
+#endif
+      [code isEqualToString:[self _unlockCode]])
+    return NO;
+  return YES;
 }
 
 // Unlock with the code
@@ -343,7 +349,6 @@
 //
 - (BOOL)unlockFeature:(NSString *)feature
              withCode:(NSString *)code {
-  NSLog(@"%@", code);
   BOOL isLocked = YES;
   if (
 #ifdef kKYUnlockCodeManagerUniqueCodeDefined
