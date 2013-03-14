@@ -307,6 +307,12 @@
 // Code input view
 // Show code input view
 - (void)_showCodeInputView:(NSNotification *)note {
+  NSString * feature = note.object;
+  // If not locked, do nothing
+  if (! [self isLockedOnFeature:feature])
+    return;
+  
+  // Show code input view
   UIAlertView * codeInputView = [UIAlertView alloc];
   [codeInputView initWithTitle:NSLocalizedString(@"KYUnlockCodeManager:CodeInputViewTitle", nil)
                        message:nil
