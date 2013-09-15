@@ -16,9 +16,9 @@
 // .m: NSString * const kKYUnlockCodeManagerUniqueCode = @"abcdef";
 //
 // If it is not defined, do not use unique code.
-#ifndef kKYUnlockCodeManagerUniqueCodeDefined
-#define kKYUnlockCodeManagerUniqueCodeDefined 0
-#endif
+//#ifndef kKYUnlockCodeManagerUniqueCodeDefined
+//#define kKYUnlockCodeManagerUniqueCodeDefined 0
+//#endif
 
 // Notification Name
 #define kKYUnlockCodeManagerNShowCodeInputView @"KYUnlockCodeManagerNShowCodeInputView"
